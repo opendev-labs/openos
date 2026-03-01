@@ -1,0 +1,195 @@
+#!/bin/bash
+# MoltOS VM Controller - Sovereign Virtual Machine Manager
+# Professional CLI for creating and managing VirtualBox VMs
+
+set -e
+
+# Configuration
+VM_POOL="/opt/moltos/vms"
+ORANGE='\033[38;5;208m'
+BOLD='\033[1m'
+GREEN='\033[1;32m'
+BLUE='\033[1;34m'
+NC='\033[0m'
+
+# Helper functions
+show_help() {
+    cat << EOF
+${ORANGE}${BOLD}MoltOS VM Controller${NC} - Sovereign VM Management
+
+${BOLD}USAGE:${NC}
+    moltos-vm-controller <command> [options]
+
+${BOLD}COMMANDS:${NC}
+    create <template> --name <name>    Create new VM from template
+    list                               List all VMs
+    start <name>                       Start a VM
+    stop <name>                        Gracefully stop a VM
+    kill <name>                        Force stop a VM
+    delete <name>                      Delete a VM
+    snapshot <name> <snap-name>        Create snapshot
+    restore <name> <snap-name>         Restore snapshot
+
+${BOLD}TEMPLATES:${NC}
+    kali                               Kali Linux (minimal)
+    xubuntu                            Xubuntu 24.04 LTS
+    tiny                               MoltOS Tiny (busybox-based)
+
+${BOLD}EXAMPLES:${NC}
+    moltos-vm-controller create kali --name RedTeam-01
+    moltos-vm-controller start RedTeam-01
+    moltos-vm-controller snapshot RedTeam-01 "pre-exploit"
+
+EOF
+}
+
+create_vm() {
+    local template=$1
+    local vm_name=$2
+    
+    if [ -z "$vm_name" ]; then
+        echo -e "${ORANGE}[!]${NC} Error: VM name required. Use: --name <name>"
+        exit 1
+    fi
+    
+    echo -e "${BLUE}[▸]${NC} Creating VM: ${BOLD}$vm_name${NC} from template: ${BOLD}$template${NC}"
+    
+    case $template in
+        "tiny")
+            create_tiny_vm "$vm_name"
+            ;;
+        "kali")
+            create_kali_vm "$vm_name"
+            ;;
+        "xubuntu")
+            create_xubuntu_vm "$vm_name"
+            ;;
+        *)
+            echo -e "${ORANGE}[!]${NC} Unknown template: $template"
+            exit 1
+            ;;
+    esac
+}
+
+create_tiny_vm() {
+    local vm_name=$1
+    
+    # Create VM
+    vboxmanage createvm --name "$vm_name" --ostype "Linux_64" --register
+    
+    # Configure
+    vboxmanage modifyvm "$vm_name" \
+        --memory 1024 \
+        --cpus 2 \
+        --vram 128 \
+        --graphicscontroller vmsvga \
+        --accelerate3d on \
+        --boot1 disk \
+        --nic1 nat \
+        --audio-driver pulse \
+        --audiocontroller hda \
+        --clipboard-mode bidirectional \
+        --draganddrop bidirectional
+    
+    # Create and attach disk
+    local disk_path="$VM_POOL/$vm_name/${vm_name}.vdi"
+    mkdir -p "$VM_POOL/$vm_name"
+    vboxmanage createmedium disk --filename "$disk_path" --size 20480 --format VDI
+    
+    vboxmanage storagectl "$vm_name" --name "SATA" --add sata --controller IntelAhci
+    vboxmanage storageattach "$vm_name" --storagectl "SATA" --port 0 --device 0 --type hdd --medium "$disk_path"
+    
+    # Check if initrd exists
+    if [ -f "/tmp/moltos-tiny/initrd.img" ] && [ -f "/tmp/moltos-kernel" ]; then
+        # Copy kernel and initrd to VM folder
+        cp /tmp/moltos-kernel "$VM_POOL/$vm_name/"
+        cp /tmp/moltos-tiny/initrd.img "$VM_POOL/$vm_name/"
+        
+        echo -e "${GREEN}[✓]${NC} MoltOS Tiny VM created: $vm_name"
+        echo -e "${BLUE}[▸]${NC} To boot, use: vboxmanage startvm \"$vm_name\" --type gui"
+        echo -e "${ORANGE}[!]${NC} Note: Kernel boot requires manual configuration in VirtualBox settings"
+    else
+        echo -e "${GREEN}[✓]${NC} VM shell created: $vm_name"
+        echo -e "${ORANGE}[!]${NC} Run ./forge_initrd.sh first to create boot image"
+    fi
+}
+
+create_kali_vm() {
+    local vm_name=$1
+    echo -e "${ORANGE}[!]${NC} Kali template requires ISO download. Feature coming soon."
+    echo -e "${BLUE}[▸]${NC} For now, use VirtualBox GUI to import Kali"
+}
+
+create_xubuntu_vm() {
+    local vm_name=$1
+    echo -e "${ORANGE}[!]${NC} Xubuntu template requires ISO download. Feature coming soon."
+    echo -e "${BLUE}[▸]${NC} For now, use VirtualBox GUI to import Xubuntu"
+}
+
+list_vms() {
+    echo -e "${BLUE}[▸]${NC} Sovereign VMs:"
+    vboxmanage list vms
+}
+
+start_vm() {
+    local vm_name=$1
+    echo -e "${BLUE}[▸]${NC} Starting VM: ${BOLD}$vm_name${NC}"
+    vboxmanage startvm "$vm_name" --type gui
+}
+
+stop_vm() {
+    local vm_name=$1
+    echo -e "${BLUE}[▸]${NC} Stopping VM: ${BOLD}$vm_name${NC}"
+    vboxmanage controlvm "$vm_name" acpipowerbutton
+}
+
+kill_vm() {
+    local vm_name=$1
+    echo -e "${ORANGE}[!]${NC} Force stopping VM: ${BOLD}$vm_name${NC}"
+    vboxmanage controlvm "$vm_name" poweroff
+}
+
+delete_vm() {
+    local vm_name=$1
+    echo -e "${ORANGE}[!]${NC} Deleting VM: ${BOLD}$vm_name${NC}"
+    vboxmanage unregistervm "$vm_name" --delete
+}
+
+# Main command dispatcher
+case ${1:-help} in
+    create)
+        shift
+        template=$1
+        shift
+        if [ "$1" == "--name" ]; then
+            shift
+            create_vm "$template" "$1"
+        else
+            echo -e "${ORANGE}[!]${NC} Missing --name parameter"
+            show_help
+        fi
+        ;;
+    list)
+        list_vms
+        ;;
+    start)
+        start_vm "$2"
+        ;;
+    stop)
+        stop_vm "$2"
+        ;;
+    kill)
+        kill_vm "$2"
+        ;;
+    delete)
+        delete_vm "$2"
+        ;;
+    help|--help|-h)
+        show_help
+        ;;
+    *)
+        echo -e "${ORANGE}[!]${NC} Unknown command: $1"
+        show_help
+        exit 1
+        ;;
+esac

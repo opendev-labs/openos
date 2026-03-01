@@ -1,7 +1,7 @@
 # MoltOS Tech Specs
 
 ## AI Configuration
-- **Model**: Qwen2.5-1.5B (Quantized Q4_K_M)
+- **Model**: NanoPi-1.5B (Quantized Q4_K_M)
 - **Inference Server**: OpenM (Fork of Ollama)
 - **Interface**: `pi` (Natural Language Shell)
 

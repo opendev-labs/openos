@@ -4,7 +4,7 @@ MoltOS is a forked adaptation of Kali Linux, optimized for low-spec hardware and
 
 ## Core Stack
 - **Engine**: OpenM (Telemetry-free)
-- **Soul**: NanoPi (Qwen 2.5 1.5B)
+- **Soul**: NanoPi (1.5B AI Model)
 - **Agent**: Spoon (Node orchestrator)
 
 ## Design Principles

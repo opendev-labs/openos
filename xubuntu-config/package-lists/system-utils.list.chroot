@@ -1,0 +1,27 @@
+htop
+btop
+ncdu
+tree
+ripgrep
+fd-find
+bat
+fzf
+
+# Kali Linux / Pentesting Tools
+nmap
+wireshark
+aircrack-ng
+netcat-traditional
+john
+sqlmap
+metasploit-framework
+macchanger
+proxychains4
+dirb
+nikto
+hydra
+hashcat
+tcpdump
+whois
+dnsutils
+net-tools

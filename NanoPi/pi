@@ -1,0 +1,4 @@
+#!/bin/bash
+# Pi CLI - The Hypersonic Interface
+# Pass all arguments directly to ollama
+exec ollama run opendev-labs/nanopi "$@"

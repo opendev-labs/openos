@@ -1,0 +1,53 @@
+#!/bin/bash
+set -e
+
+echo "=== MOLTOS: Installing AI Stack ==="
+
+# Install llama.cpp for local LLM inference
+apt-get update && apt-get install -y cmake git wget build-essential initramfs-tools
+cd /opt
+rm -rf llama.cpp
+git clone https://github.com/ggerganov/llama.cpp.git
+cd llama.cpp
+cmake -B build -DGGML_NATIVE=OFF
+cmake --build build --config Release -j$(nproc)
+cp build/bin/llama-cli /usr/local/bin/
+cp build/bin/llama-server /usr/local/bin/
+
+# Create MoltOS AI directories
+mkdir -p /opt/moltos/models
+mkdir -p /opt/moltos/bin
+
+# Download Qwen 2.5 1.5B model (quantized for efficiency)
+echo "Downloading Qwen 2.5 1.5B model..."
+cd /opt/moltos/models
+wget -q --show-progress \
+    https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf \
+    -O qwen2.5-1.5b-instruct-q4_k_m.gguf
+
+# Create systemd service for AI server (auto-start on boot)
+cat > /etc/systemd/system/moltos-ai.service <<'SVCEOF'
+[Unit]
+Description=MoltOS AI Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/llama-server \
+    --model /opt/moltos/models/qwen2.5-1.5b-instruct-q4_k_m.gguf \
+    --host 127.0.0.1 \
+    --port 8765 \
+    --ctx-size 2048 \
+    --threads 4
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+SVCEOF
+
+# Enable the service
+systemctl enable moltos-ai.service
+
+echo "=== AI Stack Installed Successfully ==="

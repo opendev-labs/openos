@@ -1,0 +1,9 @@
+# Minimal XFCE Environment
+xfce4
+xfce4-goodies
+xubuntu-icon-theme
+ubuntu-wallpapers
+lightdm
+lightdm-gtk-greeter
+network-manager-gnome
+chromium-browser

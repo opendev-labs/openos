@@ -1,0 +1,139 @@
+#!/bin/bash
+set -e
+
+echo "=== MOLTOS: Applying Branding ==="
+
+# Replace hostname
+echo "moltos" > /etc/hostname
+
+# Replace issue files
+cat > /etc/issue <<'EOF'
+MoltOS Xubuntu Edition - AI-Native Sovereign OS
+Kernel: \r
+Terminal: \l
+
+EOF
+
+cat > /etc/issue.net <<'EOF'
+MoltOS Xubuntu Edition - AI-Native Sovereign OS
+EOF
+
+# Update os-release
+cat > /etc/os-release <<'OSEOF'
+NAME="MoltOS"
+VERSION="1.0 (Xubuntu Edition)"
+ID=moltos
+ID_LIKE=ubuntu
+PRETTY_NAME="MoltOS 1.0 Xubuntu Edition"
+VERSION_ID="1.0"
+HOME_URL="https://molt-os.org/"
+SUPPORT_URL="https://github.com/opendev-labs/molt.os"
+BUG_REPORT_URL="https://github.com/opendev-labs/molt.os/issues"
+PRIVACY_POLICY_URL="https://molt-os.org/privacy"
+VERSION_CODENAME=sovereign
+UBUNTU_CODENAME=jammy
+OSEOF
+
+# Create MOTD
+cat > /etc/motd <<'MOTDEOF'
+╔══════════════════════════════════════════════════════════╗
+║                                                          ║
+║   ███╗   ███╗ ██████╗ ██╗  ████████╗ ██████╗ ███████╗  ║
+║   ████╗ ████║██╔═══██╗██║  ╚══██╔══╝██╔═══██╗██╔════╝  ║
+║   ██╔████╔██║██║   ██║██║     ██║   ██║   ██║███████╗  ║
+║   ██║╚██╔╝██║██║   ██║██║     ██║   ██║   ██║╚════██║  ║
+║   ██║ ╚═╝ ██║╚██████╔╝███████╗██║   ╚██████╔╝███████║  ║
+║   ╚═╝     ╚═╝ ╚═════╝ ╚══════╝╚═╝    ╚═════╝ ╚══════╝  ║
+║                                                          ║
+║            AI-Native Sovereign Distribution              ║
+║              Xubuntu Edition - Offline First             ║
+║                                                          ║
+╚══════════════════════════════════════════════════════════╝
+
+  🧠  AI Terminal: Press Super+T or run 'ai-term'
+  💡  AI Command: Type 'ai <your question>' in any terminal
+  🔧  System Info: neofetch
+
+  Welcome, Sovereign User.
+
+MOTDEOF
+
+# Set GRUB Distributor and Plymouth Splash
+sed -i 's/^GRUB_DISTRIBUTOR=.*/GRUB_DISTRIBUTOR="MoltOS"/' /etc/default/grub || true
+
+# We want pure MoltOS branding without Ubuntu logos early on, so we strip Ubuntu themes
+apt-get purge -y plymouth-theme-ubuntu-text plymouth-theme-ubuntu-logo || true
+update-grub || true
+
+# System Info Aesthetic (Fastfetch)
+export DEBIAN_FRONTEND=noninteractive
+apt-get install -y --no-install-recommends fastfetch
+
+# Configure custom fastfetch branding for MoltOS instead of the default layout
+mkdir -p /etc/skel/.config/fastfetch
+cat > /etc/skel/.config/fastfetch/config.jsonc <<'FFEOF'
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+  "logo": {
+    "type": "raw",
+    "source": "MoltOS Local Agent"
+  },
+  "modules": [
+    "title",
+    "separator",
+    "os",
+    "host",
+    "kernel",
+    "uptime",
+    "packages",
+    "shell",
+    "de",
+    "terminal",
+    "cpu",
+    "memory",
+    "colors"
+  ]
+}
+FFEOF
+
+# Set custom bash prompt for root and moltos user
+cat >> /root/.bashrc <<'BASHEOF'
+
+# MoltOS Custom Prompt
+export PS1="\[\033[38;5;208m\][\u@moltos]\[\033[0m\] \w\n# "
+fastfetch
+BASHEOF
+
+if [ -f /home/moltos/.bashrc ]; then
+    cat >> /home/moltos/.bashrc <<'BASHEOF'
+
+# MoltOS Custom Prompt
+export PS1="\[\033[38;5;208m\][\u@moltos]\[\033[0m\] \w\n$ "
+fastfetch
+BASHEOF
+fi
+
+# Set desktop wallpaper message (simple text file for now)
+mkdir -p /usr/share/moltos
+cat > /usr/share/moltos/welcome.txt <<'WELEOF'
+Welcome to MoltOS Xubuntu Edition
+
+This is an AI-native, sovereign operating system built for:
+  • Privacy-first local AI operations
+  • Offline-first workflow
+  • Low-spec hardware optimization (8GB RAM, i7+)
+
+AI Stack:
+  • Engine: llama.cpp (Telemetry-free)
+  • Model: Qwen 2.5 1.5B (Local inference)
+  • Interface: AI-enhanced terminal
+
+Quick Start:
+  1. Press Super+T to open AI Terminal
+  2. Type: ai "how do I update the system?"
+  3. Press Ctrl+Space while typing for smart suggestions
+
+Project: https://github.com/opendev-labs/molt.os
+WELEOF
+
+echo "=== MoltOS Branding Applied ==="

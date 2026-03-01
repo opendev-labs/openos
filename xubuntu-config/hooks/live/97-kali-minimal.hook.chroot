@@ -1,0 +1,66 @@
+#!/bin/bash
+set -e
+
+echo "=== MOLTOS: Configuring Minimal XFCE & Kali Tools ==="
+
+# 1. Clean up excessive XFCE bloat if added by xfce4 metapackage
+apt-get purge -y xfce4-notes xfce4-clipman xfce4-dict sgt-puzzles || true
+apt-get autoremove -y
+
+# 2. Add Kali Linux repositories for specific advanced pentesting tools not in Ubuntu
+echo "deb http://http.kali.org/kali kali-rolling main contrib non-free non-free-firmware" > /etc/apt/sources.list.d/kali.list
+wget -q -O - https://archive.kali.org/archive-key.asc | apt-key add -
+
+# Create preferences to pin Kali packages lower so they don't overwrite core Ubuntu system packages
+cat > /etc/apt/preferences.d/kali.pref <<'PREFEOF'
+Package: *
+Pin: release a=kali-rolling
+Pin-Priority: 50
+PREFEOF
+
+apt-get update
+
+# Install any specific Kali tools you want that aren't in Ubuntu (optional, since we already added ubuntu equivalents)
+# apt-get install -y --no-install-recommends kali-tools-top10 || true
+
+# 3. Purge unauthorized GNOME elements and unneeded UI components
+apt-get purge -y gnome-shell gnome-session ubuntu-desktop gdm3 || true
+
+# 4. Install theme compiler dependencies
+export DEBIAN_FRONTEND=noninteractive
+apt-get install -y --no-install-recommends sassc optipng inkscape libglib2.0-dev libxml2-utils dialog
+
+# 5. Download and inject the WhiteSur MacOS/Windows style theme and icons
+mkdir -p /usr/share/themes /usr/share/icons
+wget -qO- https://github.com/vinceliuice/WhiteSur-gtk-theme/archive/refs/tags/2023.04.26.tar.gz | tar xz -C /tmp/
+(cd /tmp/WhiteSur-gtk-theme-* && ./install.sh -d /usr/share/themes -c Light -t default -N glass) || echo "WARNING: WhiteSur GTK installation failed!"
+
+wget -qO- https://github.com/vinceliuice/WhiteSur-icon-theme/archive/refs/tags/2023.04.26.tar.gz | tar xz -C /tmp/
+(cd /tmp/WhiteSur-icon-theme-* && ./install.sh -d /usr/share/icons -a) || echo "WARNING: WhiteSur icons installation failed!"
+
+# 6. Ensure XFCE default settings point to the new clean theme and force XFCE session
+mkdir -p /etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/
+cat > /etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml <<'XSET'
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xsettings" version="1.0">
+  <property name="Net" type="empty">
+    <property name="ThemeName" type="string" value="WhiteSur-Light"/>
+    <property name="IconThemeName" type="string" value="WhiteSur"/>
+  </property>
+</channel>
+XSET
+
+# Force LightDM to strictly open XFCE
+cat > /usr/share/lightdm/lightdm.conf.d/50-xubuntu.conf <<'LIGEOF'
+[Seat:*]
+user-session=xfce
+LIGEOF
+
+# 7. Cleanup theme compiler dependencies to save ISO space
+apt-get purge -y sassc optipng inkscape libglib2.0-dev libxml2-utils || true
+apt-get autoremove -y
+
+# Make chromium the default browser
+update-alternatives --set x-www-browser /usr/bin/chromium-browser || true
+
+echo "=== Minimal XFCE and Kali Repos Configured ==="

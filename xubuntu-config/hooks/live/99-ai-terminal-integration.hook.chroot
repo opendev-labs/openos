@@ -1,0 +1,103 @@
+#!/bin/bash
+set -e
+
+echo "=== MOLTOS: Integrating AI Terminal ==="
+
+# Create AI terminal wrapper script
+cat > /usr/local/bin/ai-term <<'EOF'
+#!/bin/bash
+# AI-Enhanced Terminal for MoltOS
+# Hotkey: Ctrl+Space to activate AI assist
+
+export MOLTOS_AI_PORT=8765
+export MOLTOS_AI_MODEL="Qwen 2.5 1.5B"
+
+# Launch terminal with AI integration
+xfce4-terminal --geometry=120x40 \
+    --title="MoltOS AI Terminal" \
+    --command="bash --rcfile /etc/moltos/ai-bashrc"
+EOF
+
+chmod +x /usr/local/bin/ai-term
+
+# Create AI-enhanced bash RC
+mkdir -p /etc/moltos
+cat > /etc/moltos/ai-bashrc <<'RCEOF'
+# Load default bashrc first
+if [ -f ~/.bashrc ]; then
+    source ~/.bashrc
+fi
+
+# MoltOS AI Terminal Integration
+export PS1="\[\033[38;5;208m\][\u@moltos-ai]\[\033[0m\] \w\n$ "
+
+alias pi="pi-chat"
+
+# Welcome message
+echo "🧠 MoltOS AI Terminal Active"
+echo "Commands: Type 'pi' to interact with the NanoPi model"
+RCEOF
+
+# Add the alias to the global system skel so it works for new users
+mkdir -p /etc/skel
+echo "alias pi='pi-chat'" >> /etc/skel/.bashrc
+echo "alias pi='pi-chat'" >> /root/.bashrc
+
+# AgentOS Sudo Authorization (No Password)
+mkdir -p /etc/sudoers.d
+echo "moltos ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/moltos-ai
+echo "pi-chat ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers.d/moltos-ai
+chmod 0440 /etc/sudoers.d/moltos-ai
+
+# Install Ollama to the live system
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Start Ollama server in the background and pull the nanopi model
+# Note: Doing this inside a chroot can be tricky, so we start it directly
+echo "Pulling NanoPi model into the live system..."
+nohup ollama serve > /var/log/ollama.log 2>&1 &
+OLLAMA_PID=$!
+sleep 5
+ollama pull opendev-labs/nanopi || true
+kill $OLLAMA_PID
+# Create desktop launcher
+mkdir -p /usr/share/applications
+cat > /usr/share/applications/moltos-ai-terminal.desktop <<'DESKEOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=MoltOS AI Terminal
+Comment=AI-Enhanced Terminal with Qwen 2.5
+Exec=ai-term
+Icon=utilities-terminal
+Terminal=false
+Categories=System;TerminalEmulator;
+Keywords=terminal;ai;assistant;moltos;
+StartupNotify=true
+DESKEOF
+
+# Create XFCE Autostart to launch AI Terminal on Login automatically
+mkdir -p /etc/skel/.config/autostart
+cat > /etc/skel/.config/autostart/moltos-ai-terminal-auto.desktop <<'AUTOEOF'
+[Desktop Entry]
+Type=Application
+Name=MoltOS AI Terminal Auto
+Exec=ai-term
+StartupNotify=false
+Terminal=false
+AUTOEOF
+
+# Add keyboard shortcut configuration for XFCE
+mkdir -p /etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml
+cat > /etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-keyboard-shortcuts.xml <<'KEYEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xfce4-keyboard-shortcuts" version="1.0">
+  <property name="custom" type="empty">
+    <property name="override" type="bool" value="true"/>
+    <property name="&lt;Super&gt;t" type="string" value="ai-term"/>
+    <property name="&lt;Primary&gt;&lt;Alt&gt;a" type="string" value="ai-term"/>
+  </property>
+</channel>
+KEYEOF
+
+echo "=== AI Terminal Integration Complete ==="
