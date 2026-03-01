@@ -5,7 +5,7 @@
 set -e
 
 WORKSPACE="/mnt/moltos-build/xubuntu-build"
-PROJECT_DIR="/home/cube/syncstack/opendev-labs/molt.os"
+PROJECT_DIR="/home/cube/syncstack/opendev-labs/openos"
 LOG_FILE="$WORKSPACE/build.log"
 
 # Colors for output

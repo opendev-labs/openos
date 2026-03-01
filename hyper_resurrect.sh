@@ -7,7 +7,7 @@ set -e
 
 # --- Configuration ---
 WORKSPACE="/mnt/moltos-build/live-build-config"
-PROJECT_DIR="/home/cube/syncstack/opendev-labs/molt.os"
+PROJECT_DIR="/home/cube/syncstack/opendev-labs/openos"
 SECRETS_FILE="$PROJECT_DIR/moltos.secrets"
 
 # --- Aesthetics ---

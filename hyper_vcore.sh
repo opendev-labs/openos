@@ -5,10 +5,10 @@
 set -e
 
 # Configuration
-VM_DIR="/home/cube/syncstack/opendev-labs/molt.os/vm"
+VM_DIR="/home/cube/syncstack/opendev-labs/openos/vm"
 DISK_IMAGE="$VM_DIR/moltos_disk.qcow2"
 DISK_SIZE="20G"
-ISO_FILE=$(find /home/cube/syncstack/opendev-labs/molt.os -maxdepth 1 -name "*.iso" -o -name "*.hybrid.iso" 2>/dev/null | head -n 1)
+ISO_FILE=$(find /home/cube/syncstack/opendev-labs/openos -maxdepth 1 -name "*.iso" -o -name "*.hybrid.iso" 2>/dev/null | head -n 1)
 if [ -z "$ISO_FILE" ]; then
     ISO_FILE=$(find /home/cube/kali-custom-build/images -name "*.iso" -o -name "*.hybrid.iso" 2>/dev/null | head -n 1)
 fi

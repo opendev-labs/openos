@@ -27,8 +27,8 @@ ID_LIKE=ubuntu
 PRETTY_NAME="MoltOS 1.0 Xubuntu Edition"
 VERSION_ID="1.0"
 HOME_URL="https://molt-os.org/"
-SUPPORT_URL="https://github.com/opendev-labs/molt.os"
-BUG_REPORT_URL="https://github.com/opendev-labs/molt.os/issues"
+SUPPORT_URL="https://github.com/opendev-labs/openos"
+BUG_REPORT_URL="https://github.com/opendev-labs/openos/issues"
 PRIVACY_POLICY_URL="https://molt-os.org/privacy"
 VERSION_CODENAME=sovereign
 UBUNTU_CODENAME=jammy
@@ -133,7 +133,7 @@ Quick Start:
   2. Type: ai "how do I update the system?"
   3. Press Ctrl+Space while typing for smart suggestions
 
-Project: https://github.com/opendev-labs/molt.os
+Project: https://github.com/opendev-labs/openos
 WELEOF
 
 echo "=== MoltOS Branding Applied ==="
